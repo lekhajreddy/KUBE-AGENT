@@ -71,23 +71,8 @@ def test_correlation_engine():
         }, f, indent=2)
     print("\n[OK] Results exported to tests/test_results.json")
 
-    if result['correlations']:
-        print("[OK] Correlation engine: PASSED")
-    else:
-        print("[FAIL] Correlation engine: FAILED")
-        return False
-
-    if health['score'] < 100:
-        print("[OK] Health scoring: PASSED")
-    else:
-        print("[INFO] Health scoring: No deductions")
-
-    if exhaust:
-        print("[OK] Exhaustion predictions: PASSED")
-    else:
-        print("[INFO] Exhaustion predictions: None")
-
-    return True
+    assert result['correlations'], "Correlation engine should produce correlations"
+    print("[OK] Correlation engine: PASSED")
 
 
 if __name__ == '__main__':
