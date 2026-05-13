@@ -1,20 +1,19 @@
 'use client';
-import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
+import dagre from 'dagre';
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
   Controls,
   MiniMap,
-  useNodesState,
-  useEdgesState,
   Handle,
   Position,
   NodeProps,
   MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { ServiceMetrics, TopologyNode, TopologyLink, CorrelationData, ImpactChain } from '@/types';
+import { ServiceMetrics, TopologyNode, TopologyLink, CorrelationData } from '@/types';
 import { motion } from 'framer-motion';
 
 const NODE_COLORS: Record<string, string> = {
@@ -76,6 +75,24 @@ interface Props {
   correlationIntelligence?: CorrelationData;
 }
 
+function layoutNodes(nodes: TopologyNode[], links: TopologyLink[]) {
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({ rankdir: 'LR', nodesep: 40, ranksep: 80, marginx: 30, marginy: 30 });
+
+  for (const n of nodes) g.setNode(n.id, { width: 140, height: 50 });
+  for (const l of links) g.setEdge(l.source, l.target);
+
+  dagre.layout(g);
+
+  const positions: Record<string, { x: number; y: number }> = {};
+  for (const n of nodes) {
+    const pt = g.node(n.id);
+    positions[n.id] = pt ? { x: pt.x, y: pt.y } : { x: 0, y: 0 };
+  }
+  return positions;
+}
+
 export default function DependencyGraphV2({ nodes: topoNodes, links: topoLinks, metrics, correlationIntelligence }: Props) {
   const statusMap = useMemo(() => new Map(metrics.map(m => [m.service, {
     anomaly: m.anomaly?.is_anomaly ?? false,
@@ -96,13 +113,16 @@ export default function DependencyGraphV2({ nodes: topoNodes, links: topoLinks, 
     return set;
   }, [correlationIntelligence]);
 
-  const rfNodes = useMemo(() => topoNodes.map((n, idx) => {
+  const positions = useMemo(() => layoutNodes(topoNodes, topoLinks), [topoNodes, topoLinks]);
+
+  const rfNodes = useMemo(() => topoNodes.map((n) => {
     const st = statusMap.get(n.id);
     const isImpacted = impactedServices.has(n.id);
+    const pos = positions[n.id] || { x: 0, y: 0 };
     return {
       id: n.id,
       type: 'serviceNode',
-      position: { x: 150 * (idx % 4), y: 120 * Math.floor(idx / 4) + 20 },
+      position: { x: pos.x, y: pos.y },
       data: {
         label: n.id.replace(/-service$/, '').replace(/-deployment$/, ''),
         namespace: n.namespace,
@@ -113,7 +133,7 @@ export default function DependencyGraphV2({ nodes: topoNodes, links: topoLinks, 
         restarts: st?.restarts,
       },
     };
-  }), [topoNodes, statusMap, impactedServices]);
+  }), [topoNodes, statusMap, impactedServices, positions]);
 
   const rfEdges = useMemo(() => topoLinks.map((l, idx) => ({
     id: `e-${idx}`,
