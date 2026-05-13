@@ -1,0 +1,64 @@
+# Dependencies
+frontend/node_modules/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/core/__pycache__/
+backend/app/core/ai_agents/__pycache__/
+ai-engine/__pycache__/
+ml-services/__pycache__/
+agent/__pycache__/
+**/.pytest_cache/
+**/__pycache__/
+
+# Build output
+frontend/.next/
+frontend/out/
+backend/build/
+dist/
+
+# Environment
+.env
+backend/kubeconfig_docker
+backend/.env
+frontend/.env.local
+frontend/.env*.local
+ai-engine/.env
+ml-services/.env
+*.key
+*.pem
+*.cert
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.trae/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+
+# TypeScript
+frontend/tsconfig.tsbuildinfo
+
+# Python
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+.eggs/

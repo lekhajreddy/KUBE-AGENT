@@ -1,0 +1,183 @@
+# ── KubeMind API — Helm Values ─────────────────────────────────────────────
+
+replicaCount: 2
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: kubemind/api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+rbac:
+  create: true
+  clusterRules:
+    - apiGroups: [""]
+      resources: ["pods", "services", "endpoints", "namespaces", "nodes", "events", "persistentvolumeclaims"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+      verbs: ["get", "list", "watch", "patch", "update"]
+    - apiGroups: ["metrics.k8s.io"]
+      resources: ["pods", "nodes"]
+      verbs: ["get", "list", "watch"]
+
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: api.kubemind.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+config:
+  appName: "KubeMind AI"
+  appVersion: "3.0.0"
+  debug: false
+  host: "0.0.0.0"
+  port: 8000
+  corsOrigins: "*"
+  dbEnabled: true
+  timescaleEnabled: false
+  redisEnabled: false
+  k8sInCluster: true
+  k8sSimulationMode: false
+  k8sNamespaceFilter: ""
+  mlAnomalyThreshold: 0.6
+  mlPredictionHorizonMinutes: 30
+  wsMetricsBroadcastInterval: 3
+  metricsCollectionInterval: 3
+  alertCooldownSeconds: 300
+  ollamaHost: "http://ollama.kubemind.svc.cluster.local:11434"
+  ollamaModel: "llama3.2"
+  ollamaEnabled: true
+  ollamaFallbackMode: true
+
+secrets:
+  databaseUrl: ""
+  jwtSecret: ""
+  alertSlackWebhook: ""
+  alertDiscordWebhook: ""
+  alertEmailSmtpHost: ""
+  alertEmailSmtpPort: 587
+  alertEmailFrom: ""
+  alertEmailPassword: ""
+  alertEmailTo: ""
+  alertWebhookUrl: ""
+
+externalServices:
+  mlServiceUrl: "http://kubemind-ml-services:8001"
+  aiServiceUrl: "http://kubemind-ai-engine:8002"
+  prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+  otelExporterOtlpEndpoint: "http://jaeger-collector.monitoring.svc.cluster.local:4317"
+  redisUrl: "redis://kubemind-redis-master:6379/0"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+  targetMemoryUtilizationPercentage: 80
+
+probes:
+  liveness:
+    path: /api/v1/health
+    initialDelaySeconds: 30
+    periodSeconds: 20
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    path: /api/v1/health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 2
+  startup:
+    enabled: true
+    path: /api/v1/health
+    initialDelaySeconds: 0
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+podAnnotations: {}
+
+podLabels: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - kubemind-api
+          topologyKey: kubernetes.io/hostname
+
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: topology.kubernetes.io/zone
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: kubemind-api
+
+priorityClassName: ""
+
+terminationGracePeriodSeconds: 60
+
+extraEnv: []
+
+extraEnvFrom: []
+
+extraVolumes: []
+
+extraVolumeMounts: []

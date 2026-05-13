@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress-demo
+  namespace: kubemind-demo
+  labels:
+    app: memory-stress-demo
+    kubemind-demo: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-stress-demo
+  template:
+    metadata:
+      labels:
+        app: memory-stress-demo
+        kubemind-demo: "true"
+    spec:
+      containers:
+      - name: stress
+        image: polinux/stress
+        command: ["stress"]
+        args:
+          - --vm
+          - "2"
+          - --vm-bytes
+          - "256M"
+          - --timeout
+          - "300s"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1024Mi"

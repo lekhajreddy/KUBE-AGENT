@@ -1,0 +1,97 @@
+name: KubeMind E2E Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  local-clusters:
+    name: Local Clusters (CI)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cluster: [minikube, k3s, microk8s]
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-test.txt
+
+      - name: Set up Local Cluster (${{ matrix.cluster }})
+        run: |
+          if [ "${{ matrix.cluster }}" = "minikube" ]; then
+            curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+            sudo install minikube-linux-amd64 /usr/local/bin/minikube
+            minikube start --driver=docker
+          elif [ "${{ matrix.cluster }}" = "k3s" ]; then
+            curl -sfL https://get.k3s.io | sh -
+            sudo k3s kubectl config view --raw > ~/.kube/config
+          elif [ "${{ matrix.cluster }}" = "microk8s" ]; then
+            sudo snap install microk8s --classic
+            sudo microk8s status --wait-ready
+            sudo microk8s config > ~/.kube/config
+          fi
+
+      - name: Deploy Local Test Services
+        run: |
+          docker-compose -f docker-compose.yml up -d db redis kafka
+
+      - name: Run E2E Tests
+        env:
+          KUBEMIND_API_URL: "http://localhost:8000"
+          KUBEMIND_WS_URL: "ws://localhost:8000"
+          DB_ENABLED: "True"
+          DATABASE_URL: "postgresql+asyncpg://kubemind:kubemind@localhost:5432/kubemind"
+        run: |
+          pytest tests/e2e -v
+
+  cloud-clusters:
+    name: Cloud Clusters (Self-Hosted)
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        cloud: [eks, aks, gke]
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-test.txt
+
+      - name: Authenticate and Configure kubeconfig
+        run: |
+          # The self-hosted runner uses instance profiles/managed identities
+          # to pull the kubeconfig for the respective managed cluster.
+          if [ "${{ matrix.cloud }}" = "eks" ]; then
+            aws eks update-kubeconfig --name kubemind-test-cluster --region us-east-1
+          elif [ "${{ matrix.cloud }}" = "aks" ]; then
+            az aks get-credentials --resource-group kubemind-rg --name kubemind-test-cluster
+          elif [ "${{ matrix.cloud }}" = "gke" ]; then
+            gcloud container clusters get-credentials kubemind-test-cluster --region us-central1
+          fi
+
+      - name: Run E2E Tests
+        env:
+          KUBEMIND_API_URL: "http://localhost:8000"
+          KUBEMIND_WS_URL: "ws://localhost:8000"
+          DB_ENABLED: "True"
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: |
+          pytest tests/e2e -v

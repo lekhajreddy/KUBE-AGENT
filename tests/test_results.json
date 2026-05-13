@@ -1,0 +1,328 @@
+{
+  "correlations": [
+    {
+      "service": "frontend-pod",
+      "metric_a": "cpu_percent",
+      "metric_b": "restart_count",
+      "correlation": 0.786,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "CPU spike \u2192 pod throttling \u2192 restart"
+    },
+    {
+      "service": "frontend-pod",
+      "metric_a": "cpu_percent",
+      "metric_b": "memory_mb",
+      "correlation": 0.984,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "CPU spike \u2192 memory pressure"
+    },
+    {
+      "service": "frontend-pod",
+      "metric_a": "pvc_usage_percent",
+      "metric_b": "memory_mb",
+      "correlation": 0.994,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "High disk I/O \u2192 cache pressure \u2192 memory increase"
+    },
+    {
+      "service": "frontend-pod",
+      "metric_a": "network_in_kbps",
+      "metric_b": "cpu_percent",
+      "correlation": 0.987,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "Traffic burst \u2192 API saturation"
+    },
+    {
+      "service": "frontend-pod",
+      "metric_a": "network_out_kbps",
+      "metric_b": "cpu_percent",
+      "correlation": 0.987,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "Egress surge \u2192 CPU processing"
+    },
+    {
+      "service": "frontend-pod",
+      "metric_a": "latency_ms",
+      "metric_b": "cpu_percent",
+      "correlation": 0.986,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "Latency increase \u2192 CPU saturation"
+    },
+    {
+      "service": "frontend-pod",
+      "metric_a": "memory_mb",
+      "metric_b": "restart_count",
+      "correlation": 0.828,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "Memory pressure \u2192 OOM risk \u2192 restart"
+    },
+    {
+      "service": "frontend-pod",
+      "metric_a": "pvc_usage_percent",
+      "metric_b": "latency_ms",
+      "correlation": 1.0,
+      "strength": "strong",
+      "direction": "positive",
+      "interpretation": "PVC overload \u2192 I/O wait \u2192 latency"
+    }
+  ],
+  "impact_chains": [
+    {
+      "namespace": "production",
+      "chain": [
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "frontend-pod",
+          "impact_score": 3,
+          "triggers": [
+            "cpu_saturation"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        },
+        {
+          "service": "db-pod",
+          "impact_score": 3,
+          "triggers": [
+            "pvc_overload"
+          ],
+          "is_anomaly": false
+        }
+      ],
+      "total_impact": 60,
+      "anomaly_count": 0
+    }
+  ],
+  "health_score": {
+    "score": 78.5,
+    "level": "degraded",
+    "factors": [
+      {
+        "factor": "High CPU",
+        "deduction": 0.8,
+        "count": 10
+      },
+      {
+        "factor": "High Memory",
+        "deduction": 0.0,
+        "count": 0
+      },
+      {
+        "factor": "PVC Pressure",
+        "deduction": 0.7,
+        "count": 10
+      },
+      {
+        "factor": "Pod Restarts",
+        "deduction": 20,
+        "count": 24
+      },
+      {
+        "factor": "Crash/OOM",
+        "deduction": 0,
+        "count": 0
+      }
+    ]
+  },
+  "exhaustion_predictions": [
+    {
+      "service": "db-pod",
+      "metric": "pvc_usage_percent",
+      "current_value": 87.0,
+      "threshold": 90,
+      "slope": 0.4,
+      "eta_minutes": 22,
+      "eta_human": "22m",
+      "severity": "critical"
+    },
+    {
+      "service": "db-pod",
+      "metric": "pvc_usage_percent",
+      "current_value": 87.0,
+      "threshold": 90,
+      "slope": 0.4,
+      "eta_minutes": 22,
+      "eta_human": "22m",
+      "severity": "critical"
+    },
+    {
+      "service": "db-pod",
+      "metric": "pvc_usage_percent",
+      "current_value": 87.0,
+      "threshold": 90,
+      "slope": 0.4,
+      "eta_minutes": 22,
+      "eta_human": "22m",
+      "severity": "critical"
+    },
+    {
+      "service": "db-pod",
+      "metric": "pvc_usage_percent",
+      "current_value": 87.0,
+      "threshold": 90,
+      "slope": 0.4,
+      "eta_minutes": 22,
+      "eta_human": "22m",
+      "severity": "critical"
+    },
+    {
+      "service": "db-pod",
+      "metric": "pvc_usage_percent",
+      "current_value": 87.0,
+      "threshold": 90,
+      "slope": 0.4,
+      "eta_minutes": 22,
+      "eta_human": "22m",
+      "severity": "critical"
+    }
+  ]
+}

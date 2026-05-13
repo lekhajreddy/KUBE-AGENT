@@ -1,0 +1,59 @@
+{
+  "title": "KubeMind Cluster Overview",
+  "uid": "kubemind-overview",
+  "version": 1,
+  "panels": [
+    {
+      "title": "CPU Usage by Pod",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total[1m])) by (pod)",
+          "legendFormat": "{{ pod }}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "title": "Memory Usage by Pod",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes) by (pod)",
+          "legendFormat": "{{ pod }}"
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "title": "Pod Restarts",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_status_restarts_total) by (pod)"
+        }
+      ],
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 8}
+    },
+    {
+      "title": "Network I/O",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(container_network_receive_bytes_total[1m])) by (pod)",
+          "legendFormat": "RX: {{ pod }}"
+        },
+        {
+          "expr": "sum(rate(container_network_transmit_bytes_total[1m])) by (pod)",
+          "legendFormat": "TX: {{ pod }}"
+        }
+      ],
+      "gridPos": {"h": 6, "w": 16, "x": 8, "y": 8}
+    }
+  ],
+  "schemaVersion": 36
+}

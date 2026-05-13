@@ -1,0 +1,221 @@
+# ── KubeMind AI — Production Observability Stack ──────────────────────
+# Full-stack: API, ML, AI, Agent, Frontend + Prometheus, Grafana, Loki, Tempo, OpenTelemetry
+
+services:
+  # ── Core Application Services ────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/kubeconfig_docker:/root/.kube/config:ro
+    env_file:
+      - .env
+    environment:
+      - ENVIRONMENT=development
+      - ML_SERVICE_URL=http://ml-services:8001
+      - AI_SERVICE_URL=http://ai-engine:8002
+      - DATABASE_URL=postgresql+asyncpg://kubemind:kubemind@postgres:5432/kubemind
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_HOST=http://ollama:11434
+      - PROMETHEUS_URL=http://prometheus:9090
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      - GRAFANA_LOKI_URL=http://loki:3100
+    depends_on:
+      ml-services:
+        condition: service_started
+      ai-engine:
+        condition: service_started
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+      prometheus:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - default
+      - minikube
+
+  ml-services:
+    build:
+      context: ./ml-services
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8001/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - ENVIRONMENT=development
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # ── AI Infrastructure ────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+
+  # ── Data Layer ───────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=kubemind
+      - POSTGRES_PASSWORD=kubemind
+      - POSTGRES_DB=kubemind
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kubemind"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Observability Stack ──────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=kubemind
+      - GF_INSTALL_PLUGINS=
+    volumes:
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./docker/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki.yml
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:latest
+    ports:
+      - "4317:4317"
+      - "3200:3200"
+    volumes:
+      - ./docker/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    command: -config.file=/etc/tempo/tempo.yml
+    restart: unless-stopped
+
+  # ── OpenTelemetry Collector ──────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    ports:
+      - "4318:4318"
+    volumes:
+      - ./docker/otel-collector.yml:/etc/otel/config.yml:ro
+    command: ["--config=/etc/otel/config.yml"]
+    depends_on:
+      - tempo
+      - prometheus
+    restart: unless-stopped
+
+networks:
+  default:
+    name: kubemind_default
+  minikube:
+    external: true
+
+volumes:
+  ollama_data:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:

@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-demo
+  namespace: kubemind-demo
+  labels:
+    app: frontend-demo
+    tier: frontend
+    kubemind-demo: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend-demo
+  template:
+    metadata:
+      labels:
+        app: frontend-demo
+        tier: frontend
+        kubemind-demo: "true"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-demo
+  namespace: kubemind-demo
+  labels:
+    app: frontend-demo
+    kubemind-demo: "true"
+spec:
+  selector:
+    app: frontend-demo
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-demo
+  namespace: kubemind-demo
+  labels:
+    app: api-demo
+    tier: api
+    kubemind-demo: "true"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-demo
+  template:
+    metadata:
+      labels:
+        app: api-demo
+        tier: api
+        kubemind-demo: "true"
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-demo
+  namespace: kubemind-demo
+  labels:
+    app: api-demo
+    kubemind-demo: "true"
+spec:
+  selector:
+    app: api-demo
+  ports:
+  - port: 8080
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-demo
+  namespace: kubemind-demo
+  labels:
+    app: db-demo
+    tier: database
+    kubemind-demo: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-demo
+  template:
+    metadata:
+      labels:
+        app: db-demo
+        tier: database
+        kubemind-demo: "true"
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_PASSWORD
+          value: demo
+        - name: POSTGRES_DB
+          value: kubemind
+        ports:
+        - containerPort: 5432
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-demo
+  namespace: kubemind-demo
+  labels:
+    app: db-demo
+    kubemind-demo: "true"
+spec:
+  selector:
+    app: db-demo
+  ports:
+  - port: 5432
+    targetPort: 5432

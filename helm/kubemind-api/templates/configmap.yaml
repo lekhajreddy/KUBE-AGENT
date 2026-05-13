@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "kubemind-api.fullname" . }}-config
+  labels:
+    {{- include "kubemind-api.labels" . | nindent 4 }}
+data:
+  app-name: {{ .Values.config.appName | quote }}
+  app-version: {{ .Values.config.appVersion | quote }}
+  debug: {{ .Values.config.debug | quote }}
+  host: {{ .Values.config.host | quote }}
+  port: {{ .Values.config.port | quote }}
+  cors-origins: {{ .Values.config.corsOrigins | quote }}
+  db-enabled: {{ .Values.config.dbEnabled | quote }}
+  timescale-enabled: {{ .Values.config.timescaleEnabled | quote }}
+  redis-enabled: {{ .Values.config.redisEnabled | quote }}
+  redis-url: {{ .Values.externalServices.redisUrl | quote }}
+  k8s-in-cluster: {{ .Values.config.k8sInCluster | quote }}
+  k8s-simulation-mode: {{ .Values.config.k8sSimulationMode | quote }}
+  k8s-namespace-filter: {{ .Values.config.k8sNamespaceFilter | quote }}
+  prometheus-url: {{ .Values.externalServices.prometheusUrl | quote }}
+  ml-service-url: {{ .Values.externalServices.mlServiceUrl | quote }}
+  ai-service-url: {{ .Values.externalServices.aiServiceUrl | quote }}
+  ollama-host: {{ .Values.config.ollamaHost | quote }}
+  ollama-model: {{ .Values.config.ollamaModel | quote }}
+  ollama-enabled: {{ .Values.config.ollamaEnabled | quote }}
+  ollama-fallback-mode: {{ .Values.config.ollamaFallbackMode | quote }}
+  ml-anomaly-threshold: {{ .Values.config.mlAnomalyThreshold | quote }}
+  ml-prediction-horizon-minutes: {{ .Values.config.mlPredictionHorizonMinutes | quote }}
+  ws-metrics-broadcast-interval: {{ .Values.config.wsMetricsBroadcastInterval | quote }}
+  metrics-collection-interval: {{ .Values.config.metricsCollectionInterval | quote }}
+  alert-cooldown-seconds: {{ .Values.config.alertCooldownSeconds | quote }}
+  otel-exporter-otlp-endpoint: {{ .Values.externalServices.otelExporterOtlpEndpoint | quote }}

@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-stress-claim
+  namespace: kubemind-demo
+  labels:
+    kubemind-demo: "true"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvc-stress-demo
+  namespace: kubemind-demo
+  labels:
+    app: pvc-stress-demo
+    kubemind-demo: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pvc-stress-demo
+  template:
+    metadata:
+      labels:
+        app: pvc-stress-demo
+        kubemind-demo: "true"
+    spec:
+      containers:
+      - name: stress
+        image: busybox
+        command: ["sh", "-c"]
+        args:
+          - "while true; do dd if=/dev/zero of=/data/test.img bs=1M count=100 2>/dev/null; sleep 5; done"
+        volumeMounts:
+        - name: stress-storage
+          mountPath: /data
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+      volumes:
+      - name: stress-storage
+        persistentVolumeClaim:
+          claimName: pvc-stress-claim

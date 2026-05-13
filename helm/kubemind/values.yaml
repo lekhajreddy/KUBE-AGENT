@@ -1,0 +1,194 @@
+# ── KubeMind Umbrella — Global & Subchart Values ──────────────────────────
+
+global:
+  namespace: kubemind
+
+  postgresql:
+    auth:
+      postgresPassword: ""
+      username: kubemind
+      password: kubemind
+      database: kubemind
+  redis:
+    auth:
+      enabled: true
+      password: ""
+
+# ── Subchart: kubemind-api ───────────────────────────────────────────────
+kubemind-api:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: kubemind/api
+    tag: latest
+    pullPolicy: IfNotPresent
+  config:
+    appName: "KubeMind AI"
+    appVersion: "3.0.0"
+    debug: false
+    dbEnabled: true
+    timescaleEnabled: false
+    redisEnabled: true
+    k8sInCluster: true
+    k8sSimulationMode: false
+    ollamaHost: "http://ollama.kubemind.svc.cluster.local:11434"
+    ollamaModel: "llama3.2"
+    ollamaEnabled: true
+    ollamaFallbackMode: true
+    mlAnomalyThreshold: 0.6
+    mlPredictionHorizonMinutes: 30
+    wsMetricsBroadcastInterval: 3
+    metricsCollectionInterval: 3
+    alertCooldownSeconds: 300
+  secrets:
+    databaseUrl: "postgresql://kubemind:kubemind@kubemind-postgresql:5432/kubemind?sslmode=disable"
+    jwtSecret: ""
+    alertSlackWebhook: ""
+    alertDiscordWebhook: ""
+    alertEmailSmtpHost: ""
+    alertEmailSmtpPort: 587
+    alertEmailFrom: ""
+    alertEmailPassword: ""
+    alertEmailTo: ""
+    alertWebhookUrl: ""
+  externalServices:
+    mlServiceUrl: "http://kubemind-ml-services:8001"
+    aiServiceUrl: "http://kubemind-ai-engine:8002"
+    prometheusUrl: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+    otelExporterOtlpEndpoint: "http://jaeger-collector.monitoring.svc.cluster.local:4317"
+    redisUrl: "redis://:kubemind@kubemind-redis-master:6379/0"
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+  ingress:
+    enabled: false
+    hosts:
+      - host: api.kubemind.local
+        paths:
+          - path: /
+            pathType: Prefix
+
+# ── Subchart: kubemind-agent ─────────────────────────────────────────────
+kubemind-agent:
+  enabled: true
+  replicaCount: 1
+  agent:
+    image:
+      repository: kubemind/agent
+      tag: latest
+      pullPolicy: IfNotPresent
+    apiKey: ""
+    backendUrl: "ws://kubemind-kubemind-api:8000/ws/agent"
+    clusterId: ""
+    collectionInterval: "5"
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 128Mi
+
+# ── Subchart: bitnami/postgresql ─────────────────────────────────────────
+postgresql:
+  enabled: true
+  architecture: standalone
+  auth:
+    username: kubemind
+    password: kubemind
+    database: kubemind
+  primary:
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+# ── Subchart: bitnami/redis ──────────────────────────────────────────────
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: true
+    password: kubemind
+  master:
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# ── Frontend (optional, bundled inline) ──────────────────────────────────
+frontend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: kubemind/frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ── ML Services (optional, bundled inline) ───────────────────────────────
+mlServices:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: kubemind/ml-services
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# ── AI Engine (optional, bundled inline) ─────────────────────────────────
+aiEngine:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: kubemind/ai-engine
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8002
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi

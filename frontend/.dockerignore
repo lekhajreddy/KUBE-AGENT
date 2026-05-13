@@ -1,0 +1,16 @@
+node_modules
+.next
+dist
+build
+coverage
+.git
+.github
+.vscode
+.cache
+tmp
+logs
+*.log
+Dockerfile
+docker-compose*
+.env
+.env.local

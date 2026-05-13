@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-stress-demo
+  namespace: kubemind-demo
+  labels:
+    app: network-stress-demo
+    kubemind-demo: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-stress-demo
+  template:
+    metadata:
+      labels:
+        app: network-stress-demo
+        kubemind-demo: "true"
+    spec:
+      containers:
+      - name: stress
+        image: alpine
+        command: ["sh", "-c"]
+        args:
+          - "apk add --no-cache apache2-utils; while true; do ab -n 10000 -c 50 http://kubernetes.default.svc.cluster.local/ 2>/dev/null; sleep 10; done"
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"

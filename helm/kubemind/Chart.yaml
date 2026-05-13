@@ -1,0 +1,48 @@
+apiVersion: v2
+name: kubemind
+description: KubeMind AI Platform — umbrella chart for the full-stack AI-powered Kubernetes observability platform
+type: application
+version: 0.2.0
+appVersion: "3.0.0"
+
+dependencies:
+  - name: kubemind-api
+    version: ~0.1.0
+    repository: file://../kubemind-api
+    condition: kubemind-api.enabled
+    tags:
+      - backend
+
+  - name: kubemind-agent
+    version: ~1.0.0
+    repository: file://../kubemind-agent
+    condition: kubemind-agent.enabled
+    tags:
+      - agent
+
+  - name: postgresql
+    version: ~15.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+    tags:
+      - database
+
+  - name: redis
+    version: ~19.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+    tags:
+      - cache
+
+keywords:
+  - kubemind
+  - kubernetes
+  - observability
+  - ai
+  - monitoring
+home: https://kubemind.ai
+sources:
+  - https://github.com/anomalyco/kubemind
+maintainers:
+  - name: KubeMind Team
+    email: team@kubemind.ai

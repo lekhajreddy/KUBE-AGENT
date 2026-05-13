@@ -1,0 +1,72 @@
+{{- if .Values.mlServices.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "KubeMind.fullname" . }}-ml-services
+  labels:
+    app: ml-services
+    {{- include "KubeMind.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.mlServices.replicaCount }}
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: ml-services
+  template:
+    metadata:
+      labels:
+        app: ml-services
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1002
+        fsGroup: 2002
+      containers:
+        - name: ml-services
+          image: "{{ .Values.mlServices.image.repository }}:{{ .Values.mlServices.image.tag }}"
+          imagePullPolicy: {{ .Values.mlServices.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - containerPort: 8001
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.kubemind-api.externalServices.otelExporterOtlpEndpoint | quote }}
+            - name: ML_ANOMALY_THRESHOLD
+              value: {{ .Values.kubemind-api.config.mlAnomalyThreshold | quote }}
+          resources:
+            {{- toYaml .Values.mlServices.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "KubeMind.fullname" . }}-ml-services
+spec:
+  type: {{ .Values.mlServices.service.type }}
+  ports:
+    - port: {{ .Values.mlServices.service.port }}
+      targetPort: 8001
+  selector:
+    app: ml-services
+{{- end }}

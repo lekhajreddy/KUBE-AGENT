@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubemind-backend
+  namespace: default
+  labels:
+    app: kubemind-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kubemind-backend
+  template:
+    metadata:
+      labels:
+        app: kubemind-backend
+    spec:
+      serviceAccountName: kubemind-sa
+      containers:
+        - name: kubemind-backend
+          image: kubemind/backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: ENVIRONMENT
+              value: production
+            - name: K8S_IN_CLUSTER
+              value: "true"
+            - name: K8S_SIMULATION_MODE
+              value: "false"
+            - name: ML_SERVICE_URL
+              value: "http://kubemind-ml-service:8001"
+            - name: AI_SERVICE_URL
+              value: "http://kubemind-ai-engine:8002"
+            - name: PROMETHEUS_URL
+              value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger-collector.monitoring.svc.cluster.local:4317"
+            - name: DB_ENABLED
+              value: "false"
