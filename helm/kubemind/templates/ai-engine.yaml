@@ -52,11 +52,11 @@ spec:
             failureThreshold: 3
           env:
             - name: OLLAMA_HOST
-              value: {{ .Values.kubemind-api.config.ollamaHost | quote }}
+              value: {{ index .Values "kubemind-api" "config" "ollamaHost" | quote }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: {{ .Values.kubemind-api.externalServices.otelExporterOtlpEndpoint | quote }}
+              value: {{ index .Values "kubemind-api" "externalServices" "otelExporterOtlpEndpoint" | quote }}
             - name: OLLAMA_MODEL
-              value: {{ .Values.kubemind-api.config.ollamaModel | quote }}
+              value: {{ index .Values "kubemind-api" "config" "ollamaModel" | quote }}
           resources:
             {{- toYaml .Values.aiEngine.resources | nindent 12 }}
 ---

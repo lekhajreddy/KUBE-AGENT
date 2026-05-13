@@ -52,9 +52,9 @@ spec:
             failureThreshold: 2
           env:
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: {{ .Values.kubemind-api.externalServices.otelExporterOtlpEndpoint | quote }}
+              value: {{ index .Values "kubemind-api" "externalServices" "otelExporterOtlpEndpoint" | quote }}
             - name: ML_ANOMALY_THRESHOLD
-              value: {{ .Values.kubemind-api.config.mlAnomalyThreshold | quote }}
+              value: {{ index .Values "kubemind-api" "config" "mlAnomalyThreshold" | quote }}
           resources:
             {{- toYaml .Values.mlServices.resources | nindent 12 }}
 ---
