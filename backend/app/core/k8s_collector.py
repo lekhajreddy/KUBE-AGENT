@@ -549,10 +549,13 @@ async def collect_all_metrics() -> List[Dict[str, Any]]:
         # Latency: approximate from Prometheus (use 0 if unavailable)
         latency_ms = round(prom.get("latency_ms", 0), 1)
 
+        dep_name = dep_info["name"] if dep_info else name
+
         m = {
             # Identity
-            "service":     name,
+            "service":     dep_name,
             "pod_name":    name,
+            "deployment":  dep_name,
             "namespace":   ns,
             "node_name":   pod["node_name"],
             "domain":      ns,
@@ -690,6 +693,16 @@ def inject_fault(service: str, fault_type: str, duration_seconds: int = 120) -> 
                 target_ns = dep.metadata.namespace
                 original_replicas = dep.spec.replicas or 1
                 break
+
+        # Fallback: try matching by stripping pod hash suffix (e.g., cpu-stress-demo-5ffcc97757-ntz8t -> cpu-stress-demo)
+        if not target_dep:
+            base = service.rsplit("-", 2)[0] if "-" in service else service
+            for dep in deps.items:
+                if dep.metadata.name == base:
+                    target_dep = dep.metadata.name
+                    target_ns = dep.metadata.namespace
+                    original_replicas = dep.spec.replicas or 1
+                    break
                 
         if not target_dep:
             logger.warning(f"Could not find deployment for service {service}")

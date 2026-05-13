@@ -8,6 +8,8 @@ import logging
 import os
 from typing import Any, Callable, Dict, Optional
 
+import httpx
+
 from app.core.config import settings
 
 logger = logging.getLogger("kubemind.eventbus")
@@ -16,6 +18,7 @@ _redis = None
 _kafka_producer = None
 _kafka_consumers = []
 _listeners: Dict[str, list] = {}
+_upstash_client: Optional[httpx.AsyncClient] = None
 
 async def init_event_bus():
     """Initialize Redis/Kafka connections for pub/sub."""
@@ -26,10 +29,41 @@ async def close_event_bus():
     await close_redis()
     await close_kafka()
 
+async def _upstash_cmd(method: str, *args) -> Optional[Any]:
+    """Execute a Redis command via Upstash REST API."""
+    global _upstash_client
+    if not settings.UPSTASH_REDIS_REST_URL or not settings.UPSTASH_REDIS_REST_TOKEN:
+        return None
+    if not _upstash_client:
+        _upstash_client = httpx.AsyncClient(base_url=settings.UPSTASH_REDIS_REST_URL)
+    try:
+        body = json.dumps([method, *args])
+        r = await _upstash_client.post("/", content=body, headers={
+            "Authorization": f"Bearer {settings.UPSTASH_REDIS_REST_TOKEN}",
+        }, timeout=5)
+        r.raise_for_status()
+        return r.json().get("result")
+    except Exception as e:
+        logger.warning(f"Upstash Redis command failed ({method}): {e}")
+        return None
+
 async def init_redis():
     global _redis
     if not settings.REDIS_ENABLED:
         return
+
+    # Try Upstash REST first
+    if settings.UPSTASH_REDIS_REST_URL and settings.UPSTASH_REDIS_REST_TOKEN:
+        try:
+            result = await _upstash_cmd("PING")
+            if result == "PONG":
+                logger.info("✅ Upstash Redis connected (REST API)")
+                _redis = "upstash"  # sentinel value: KV only, no pub/sub
+                return
+        except Exception as e:
+            logger.warning(f"Upstash Redis connection failed: {e}")
+
+    # Fallback to standard Redis protocol
     try:
         import redis.asyncio as aioredis
         _redis = aioredis.from_url(
@@ -44,10 +78,13 @@ async def init_redis():
         _redis = None
 
 async def close_redis():
-    global _redis
-    if _redis:
+    global _redis, _upstash_client
+    if _upstash_client:
+        await _upstash_client.aclose()
+        _upstash_client = None
+    if _redis and _redis != "upstash":
         await _redis.aclose()
-        _redis = None
+    _redis = None
 
 async def init_kafka():
     global _kafka_producer
@@ -86,7 +123,7 @@ async def publish(channel_prefix: str, data: Dict[str, Any], cluster_id: str = "
         except Exception as e:
             logger.error(f"Local listener error on {channel}: {e}")
 
-    if _redis:
+    if _redis and _redis != "upstash":
         try:
             await _redis.publish(channel, payload)
         except Exception as e:
@@ -119,6 +156,8 @@ async def subscribe_redis(channel_prefix: str, callback: Callable, cluster_id: s
     if not _redis:
         logger.warning("Redis not available — cannot subscribe")
         return
+    if _redis == "upstash":
+        logger.warning("Upstash Redis does not support pub/sub — skipping subscribe")
 
     channel = _channel(channel_prefix, cluster_id)
     pubsub = _redis.pubsub()

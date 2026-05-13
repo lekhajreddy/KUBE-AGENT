@@ -23,6 +23,8 @@ export default function ClustersPage() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [installCmd, setInstallCmd] = useState<string | null>(null);
+  const [showCmdFor, setShowCmdFor] = useState<string | null>(null);
 
   const fetchClusters = async () => {
     try {
@@ -113,10 +115,21 @@ export default function ClustersPage() {
                   <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">{c.cluster_id}</p>
                 </div>
               </div>
-              <button onClick={() => handleDelete(c.cluster_id)}
-                className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-all">
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex gap-1">
+                {!c.agent_connected && (
+                  <button onClick={async () => {
+                    try { const r = await api.getInstallCommand(c.cluster_id); setInstallCmd(r.install_command); setShowCmdFor(c.cluster_id); } catch {}
+                  }}
+                    className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-sky-500/20 text-slate-500 hover:text-sky-400 transition-all"
+                    title="Show install command">
+                    <Terminal className="w-4 h-4" />
+                  </button>
+                )}
+                <button onClick={() => handleDelete(c.cluster_id)}
+                  className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-all">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-slate-500">Provider</span><span className="text-slate-300 font-mono text-xs">{c.provider}</span></div>
@@ -136,6 +149,37 @@ export default function ClustersPage() {
           </div>
         )}
       </div>
+
+      {/* Install Command Modal */}
+      <AnimatePresence>
+        {showCmdFor && installCmd && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowCmdFor(null)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="glass-card rounded-3xl p-6 w-full max-w-lg border border-slate-700/50 shadow-2xl"
+              onClick={e => e.stopPropagation()}>
+              <h2 className="text-lg font-bold text-slate-200 mb-2 flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-sky-400" /> Install Command
+              </h2>
+              <p className="text-sm text-slate-400 mb-4">Run this command in your cluster to install the KubeMind agent:</p>
+              <div className="relative">
+                <pre className="bg-slate-950 border border-slate-700/60 rounded-xl p-4 text-xs text-emerald-400 font-mono overflow-x-auto whitespace-pre-wrap">
+                  {installCmd}
+                </pre>
+                <button onClick={() => { navigator.clipboard.writeText(installCmd); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                  className="absolute top-3 right-3 p-2 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors">
+                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-slate-400" />}
+                </button>
+              </div>
+              <button onClick={() => setShowCmdFor(null)}
+                className="w-full mt-4 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold text-sm hover:bg-slate-700 transition-all">
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal */}
       <AnimatePresence>

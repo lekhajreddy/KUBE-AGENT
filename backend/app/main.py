@@ -221,7 +221,8 @@ async def startup():
         try:
             await init_db(enable_timescale=settings.TIMESCALE_ENABLED)
         except Exception as e:
-            logger.error(f"DB init failed: {e}")
+            logger.error(f"DB init failed — falling back to in-memory: {e}")
+            settings.DB_ENABLED = False
 
     # Init default local cluster
     try:
@@ -387,6 +388,7 @@ async def register_cluster(body: Dict[str, Any] = Body(...), user: Dict = Depend
         await create_api_key(api_key, cluster_id, user["org_id"])
     else:
         _api_keys_store[api_key] = cluster_id
+        _clusters_store[cluster_id] = {"api_key": api_key, "name": name, "provider": provider, "org_id": user.get("org_id")}
 
     # The cluster manager is an in-memory cache for live state (websockets)
     cluster_manager.register_agent_cluster(cluster_id, name, provider)
@@ -440,13 +442,12 @@ async def delete_cluster(cluster_id: str, user: Dict = Depends(require_role("adm
 @app.get("/api/v1/clusters/{cluster_id}/install-command")
 async def cluster_install_cmd(cluster_id: str, user: Dict = Depends(require_role("viewer"))):
     if settings.DB_ENABLED:
-        from app.core.database import get_cluster_db
+        from app.core.database import get_cluster_db, get_api_key_by_cluster
         c = await get_cluster_db(cluster_id)
         if not c or c["org_id"] != user["org_id"]:
             raise HTTPException(404, "Cluster not found")
-        # In a real system, you'd fetch the api_key associated with this cluster
-        # For simplicity, we just say <YOUR_API_KEY> if we can't retrieve it securely
-        api_key = "<YOUR_API_KEY>"
+        key_record = await get_api_key_by_cluster(cluster_id)
+        api_key = key_record["key_hash"] if key_record else "<YOUR_API_KEY>"
     else:
         info = _clusters_store.get(cluster_id)
         if not info:
@@ -782,13 +783,15 @@ async def fault_inject(service: str = Query(...), fault_type: str = Query(...), 
     valid = {"cpu_spike", "memory_leak", "restart_loop", "network_congestion", "storage_overload"}
     if fault_type not in valid:
         raise HTTPException(400, f"Invalid. Choose from: {valid}")
-    inject_fault(service, fault_type, duration)
-    return {"status": "logged", "service": service, "fault_type": fault_type}
+    ok = inject_fault(service, fault_type, duration)
+    if not ok:
+        raise HTTPException(500, f"Failed to inject fault: deployment '{service}' not found")
+    return {"status": "injected", "service": service, "fault_type": fault_type}
 
 @app.post("/api/v1/fault/clear")
 async def fault_clear(service: str = Query(...)):
-    clear_fault(service)
-    return {"status": "cleared", "service": service}
+    ok = clear_fault(service)
+    return {"status": "cleared" if ok else "not_found", "service": service}
 
 @app.post("/api/v1/ai/query")
 async def ai_query_route(body: Dict[str, Any] = Body(...)):

@@ -305,6 +305,15 @@ async def get_api_key(key_hash: str) -> Optional[Dict]:
         row = result.fetchone()
         return dict(row._mapping) if row else None
 
+async def get_api_key_by_cluster(cluster_id: str) -> Optional[Dict]:
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            text("SELECT key_hash, cluster_id, org_id FROM api_keys WHERE cluster_id = :cluster_id"),
+            {"cluster_id": cluster_id}
+        )
+        row = result.fetchone()
+        return dict(row._mapping) if row else None
+
 async def create_api_key(key_hash: str, cluster_id: str, org_id: str) -> None:
     async with AsyncSessionLocal() as session:
         await session.execute(

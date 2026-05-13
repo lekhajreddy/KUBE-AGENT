@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # ── Redis ─────────────────────────────────────────────────────────────────
     REDIS_URL: str = "redis://localhost:6379/0"
     REDIS_ENABLED: bool = False
+    UPSTASH_REDIS_REST_URL: str = ""
+    UPSTASH_REDIS_REST_TOKEN: str = ""
 
     # ── Kubernetes ────────────────────────────────────────────────────────────
     K8S_IN_CLUSTER: bool = False
