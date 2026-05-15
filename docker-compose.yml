@@ -17,7 +17,8 @@ services:
       - ENVIRONMENT=development
       - ML_SERVICE_URL=http://ml-services:8001
       - AI_SERVICE_URL=http://ai-engine:8002
-      - DATABASE_URL=postgresql+asyncpg://kubemind:kubemind@postgres:5432/kubemind
+      - DB_ENABLED=true
+      - DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_ngBeTp9Y2xuf@ep-tiny-mode-apjw5bq8-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require
       - REDIS_URL=redis://redis:6379/0
       - OLLAMA_HOST=http://ollama:11434
       - PROMETHEUS_URL=http://prometheus:9090
@@ -27,8 +28,6 @@ services:
       ml-services:
         condition: service_started
       ai-engine:
-        condition: service_started
-      postgres:
         condition: service_started
       redis:
         condition: service_started

@@ -175,6 +175,15 @@ def _generate_nlp_insights(rca, anomalies, summary):
 
 
 # ── Broadcast loop ────────────────────────────────────────────────────────────
+async def _broadcast_agent_data(agent_metrics: List[Dict]):
+    """Build payload from agent-sourced metrics and broadcast to dashboard clients."""
+    try:
+        payload_dict = await _build_payload(agent_metrics)
+        await manager.broadcast(json.dumps(payload_dict, default=str))
+        logger.info(f"Agent metrics broadcast: {len(agent_metrics)} services, {len(payload_dict.get('metrics',[]))} enriched")
+    except Exception as e:
+        logger.error(f"Agent metrics broadcast error: {e}")
+
 async def _broadcast_loop():
     global _cached_metrics
     logger.info("Real-time K8s metrics broadcast loop started.")
@@ -185,13 +194,14 @@ async def _broadcast_loop():
     while True:
         try:
             raw_metrics = await asyncio.wait_for(collect_all_metrics(), timeout=30)
-            _cached_metrics = raw_metrics
-            if manager.active:
-                payload_dict = await _build_payload(raw_metrics)
+            if raw_metrics:
+                _cached_metrics = raw_metrics
+            if _cached_metrics and manager.active:
+                payload_dict = await _build_payload(_cached_metrics)
                 await manager.broadcast(json.dumps(payload_dict, default=str))
                 # Alerting
                 asyncio.create_task(check_and_alert(
-                    raw_metrics, payload_dict.get("anomalies", [])))
+                    _cached_metrics, payload_dict.get("anomalies", [])))
                 if settings.DB_ENABLED:
                     default_cluster = cluster_manager.get_default_cluster()
                     cluster_id = default_cluster.cluster_id if default_cluster else "local"
@@ -368,7 +378,7 @@ async def list_clusters(user: Dict = Depends(require_role("viewer"))):
         from app.core.database import get_clusters_by_org
         clusters = await get_clusters_by_org(user["org_id"])
         return [
-            {**c, "cluster_id": c["id"]} for c in clusters
+            {**cluster_manager.get_cluster_dict(c["id"]), **c, "cluster_id": c["id"]} for c in clusters
         ]
     else:
         return [c for c in cluster_manager.get_all_clusters() if c.get("org_id") == user["org_id"] or not c.get("org_id")]
@@ -529,6 +539,9 @@ async def agent_ws(ws: WebSocket):
             await ws.close(code=4001, reason="Invalid API key")
             return
 
+    # Ensure cluster is registered in the manager (survives restarts)
+    if not cluster_manager.get_cluster(cluster_id):
+        cluster_manager.register_agent_cluster(cluster_id, f"cluster-{cluster_id[:8]}", "agent")
     await manager.connect_agent(cluster_id, ws)
     logger.info(f"Agent connected: cluster={cluster_id}")
 
@@ -545,6 +558,11 @@ async def agent_ws(ws: WebSocket):
                     # Agent pushing metrics — broadcast to dashboard clients
                     from app.core.event_bus import publish_metrics
                     asyncio.create_task(publish_metrics(msg.get("data", {}), cluster_id))
+                    # Also update cached metrics and broadcast to dashboard WebSocket clients
+                    agent_data = msg.get("data", {}).get("metrics", [])
+                    if agent_data:
+                        _cached_metrics = agent_data
+                        asyncio.create_task(_broadcast_agent_data(agent_data))
                 elif msg_type == "topology":
                     from app.core.event_bus import publish_topology
                     asyncio.create_task(publish_topology(msg.get("data", {}), cluster_id))

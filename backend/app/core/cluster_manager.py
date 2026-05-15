@@ -120,6 +120,10 @@ class ClusterManager:
     def get_cluster(self, cluster_id: str) -> Optional[ClusterConnection]:
         return self._clusters.get(cluster_id)
 
+    def get_cluster_dict(self, cluster_id: str) -> Dict:
+        conn = self._clusters.get(cluster_id)
+        return conn.to_dict() if conn else {}
+
     def get_default_cluster(self) -> Optional[ClusterConnection]:
         if self._default_id:
             return self._clusters.get(self._default_id)

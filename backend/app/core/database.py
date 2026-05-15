@@ -63,8 +63,19 @@ _SCHEMA_SQL = """
 -- Timescale extension (optional — skipped if not available)
 -- CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 
+-- Reset: drop all tables to handle schema migrations cleanly
+DROP TABLE IF EXISTS refresh_tokens CASCADE;
+DROP TABLE IF EXISTS api_keys CASCADE;
+DROP TABLE IF EXISTS clusters CASCADE;
+DROP TABLE IF EXISTS ai_insights CASCADE;
+DROP TABLE IF EXISTS prediction_history CASCADE;
+DROP TABLE IF EXISTS anomaly_records CASCADE;
+DROP TABLE IF EXISTS metrics_history CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS organizations CASCADE;
+
 -- ── Multi-Tenancy Core ────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS organizations (
+CREATE TABLE organizations (
     id          TEXT PRIMARY KEY,
     name        TEXT NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()

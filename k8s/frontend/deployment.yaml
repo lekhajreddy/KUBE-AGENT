@@ -10,18 +10,19 @@ spec:
       app: frontend
   template:
     metadata:
+  labels:
+    app: frontend
+  template:
+    metadata:
       labels:
         app: frontend
     spec:
       containers:
       - name: frontend
-        image: KubeMind-frontend:latest
-        imagePullPolicy: Never
+        image: kubemind-frontend:latest
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3000
-        env:
-        - name: NEXT_PUBLIC_API_URL
-          value: "http://backend.KubeMind.svc.cluster.local"
         resources:
           limits:
             cpu: "300m"
