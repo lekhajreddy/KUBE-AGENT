@@ -42,7 +42,7 @@ Agent (in-cluster) ──WebSocket──▶ Backend API ──HTTP──▶ ML S
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/nishwanth-10/kubemind.git
+git clone https://github.com/lekhajreddy/KUBE-AGENT.git
 cd kubemind
 cp .env.example .env
 # Edit .env as needed (defaults work for local dev)
